@@ -1,0 +1,61 @@
+{
+  "name": "content-sync",
+  "version": "1.0.0",
+  "description": "Extract text content from React/Next.js websites and convert to editable Markdown files",
+  "main": "dist/cli/index.js",
+  "bin": {
+    "content-sync": "dist/cli/index.js"
+  },
+  "scripts": {
+    "build": "tsc",
+    "dev": "tsc --watch",
+    "start": "node dist/cli/index.js",
+    "test": "jest",
+    "test:watch": "jest --watch",
+    "lint": "eslint src/**/*.ts",
+    "lint:fix": "eslint src/**/*.ts --fix",
+    "format": "prettier --write src/**/*.ts",
+    "clean": "rm -rf dist",
+    "prebuild": "npm run clean"
+  },
+  "keywords": [
+    "content-sync",
+    "react",
+    "nextjs",
+    "markdown",
+    "extraction",
+    "cms",
+    "github"
+  ],
+  "author": "Content Sync Team",
+  "license": "MIT",
+  "dependencies": {
+    "chalk": "^5.3.0",
+    "cheerio": "^1.0.0-rc.12",
+    "commander": "^11.0.0",
+    "fs-extra": "^11.1.1",
+    "gray-matter": "^4.0.3",
+    "ora": "^7.0.1",
+    "path": "^0.12.7",
+    "puppeteer": "^21.0.0",
+    "turndown": "^7.1.2",
+    "url": "^0.11.3"
+  },
+  "devDependencies": {
+    "@types/fs-extra": "^11.0.1",
+    "@types/jest": "^29.0.0",
+    "@types/node": "^20.0.0",
+    "@types/turndown": "^5.0.4",
+    "@typescript-eslint/eslint-plugin": "^6.0.0",
+    "@typescript-eslint/parser": "^6.0.0",
+    "eslint": "^8.0.0",
+    "husky": "^8.0.0",
+    "jest": "^29.0.0",
+    "prettier": "^3.0.0",
+    "ts-jest": "^29.0.0",
+    "typescript": "^5.9.2"
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}
