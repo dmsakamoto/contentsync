@@ -1,7 +1,7 @@
 {
   "name": "content-sync",
   "version": "1.0.0",
-  "description": "Extract text content from React/Next.js websites and convert to editable Markdown files",
+  "description": "Smart content extraction utility that automatically chooses between HTTP and browser methods",
   "main": "smart-extractor.js",
   "bin": {
     "content-sync": "smart-extractor.js"
@@ -26,10 +26,7 @@
     "node-fetch": "^2.7.0",
     "puppeteer": "^24.16.1"
   },
-  "devDependencies": {
-    "@types/fs-extra": "^11.0.1",
-    "@types/node": "^20.0.0"
-  },
+  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   }
