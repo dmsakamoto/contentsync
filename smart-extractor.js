@@ -225,98 +225,220 @@ class SmartExtractor {
       $contentArea = $('body');
     }
 
-    // Extract headings
-    $contentArea.find('h1, h2, h3, h4, h5, h6').each((i, element) => {
-      const $element = $(element);
-      const text = $element.text().trim();
-      if (text) {
-        content.push({
-          type: 'heading',
-          level: parseInt(element.tagName.charAt(1)),
-          text,
-          tag: element.tagName.toLowerCase()
-        });
-      }
-    });
+    // Extract content in document order (preserving natural flow)
+    this.extractContentInOrder($contentArea, content, $);
 
-    // Extract paragraphs
-    $contentArea.find('p').each((i, element) => {
-      const $element = $(element);
-      const text = $element.text().trim();
-      if (text && !this.isNavigationElement($element)) {
-        content.push({
-          type: 'paragraph',
-          text,
-          tag: 'p'
-        });
-      }
-    });
+    return content;
+  }
 
-    // Extract lists
-    $contentArea.find('ul, ol').each((i, element) => {
-      const $element = $(element);
-      const items = [];
-      $element.find('li').each((j, li) => {
-        const text = $(li).text().trim();
-        if (text) items.push(text);
-      });
-      
-      if (items.length > 0 && !this.isNavigationElement($element)) {
-        content.push({
-          type: 'list',
-          items,
-          tag: element.tagName.toLowerCase()
-        });
-      }
-    });
-
-    // Extract blockquotes
-    $contentArea.find('blockquote').each((i, element) => {
-      const $element = $(element);
-      const text = $element.text().trim();
-      if (text && !this.isNavigationElement($element)) {
-        content.push({
-          type: 'blockquote',
-          text,
-          tag: 'blockquote'
-        });
-      }
-    });
-
-    // Extract code blocks
-    $contentArea.find('pre, code').each((i, element) => {
-      const $element = $(element);
-      const text = $element.text().trim();
-      if (text && !this.isNavigationElement($element)) {
-        content.push({
-          type: 'code',
-          text,
-          tag: element.tagName.toLowerCase()
-        });
-      }
-    });
-
-    // Extract divs with substantial text content (for browser extraction)
-    $contentArea.find('div').each((i, element) => {
-      const $element = $(element);
-      const text = $element.text().trim();
-      
-      // Only extract divs with substantial text content
-      if (text.length > 50 && !this.isNavigationElement($element)) {
-        // Check if this div doesn't contain other extracted elements
-        const hasExtractedChildren = $element.find('p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, code').length > 0;
-        
-        if (!hasExtractedChildren) {
+  extractContentInOrder($element, content, $) {
+    // Get all child elements and text nodes
+    const children = $element.contents();
+    
+    children.each((i, child) => {
+      if (child.type === 'text') {
+        // Handle text nodes
+        const text = $(child).text().trim();
+        if (text && text.length > 10) { // Only significant text content
           content.push({
-            type: 'div',
+            type: 'text',
             text,
-            tag: 'div'
+            tag: 'text',
+            selector: this.generateSelector($(child), $)
           });
+        }
+      } else if (child.type === 'tag') {
+        const $child = $(child);
+        const tagName = child.name.toLowerCase();
+        
+        // Skip navigation and non-content elements
+        if (this.isNavigationElement($child)) {
+          return;
+        }
+
+        // Handle different content types
+        switch (tagName) {
+          case 'h1':
+          case 'h2':
+          case 'h3':
+          case 'h4':
+          case 'h5':
+          case 'h6':
+            const text = $child.text().trim();
+            if (text) {
+              content.push({
+                type: 'heading',
+                level: parseInt(tagName.charAt(1)),
+                text,
+                tag: tagName,
+                selector: this.generateSelector($child, $)
+              });
+            }
+            break;
+
+          case 'p':
+            const pText = $child.text().trim();
+            if (pText) {
+              content.push({
+                type: 'paragraph',
+                text: pText,
+                tag: 'p',
+                selector: this.generateSelector($child, $)
+              });
+            }
+            break;
+
+          case 'ul':
+          case 'ol':
+            const items = [];
+            $child.find('li').each((j, li) => {
+              const liText = $(li).text().trim();
+              if (liText) items.push(liText);
+            });
+            
+            if (items.length > 0) {
+              content.push({
+                type: 'list',
+                items,
+                tag: tagName,
+                selector: this.generateSelector($child, $)
+              });
+            }
+            break;
+
+          case 'blockquote':
+            const quoteText = $child.text().trim();
+            if (quoteText) {
+              content.push({
+                type: 'blockquote',
+                text: quoteText,
+                tag: 'blockquote',
+                selector: this.generateSelector($child, $)
+              });
+            }
+            break;
+
+          case 'pre':
+          case 'code':
+            const codeText = $child.text().trim();
+            if (codeText) {
+              content.push({
+                type: 'code',
+                text: codeText,
+                tag: tagName,
+                selector: this.generateSelector($child, $)
+              });
+            }
+            break;
+
+          case 'div':
+            // For divs, check if they contain substantial text content
+            const divText = $child.text().trim();
+            if (divText.length > 50) {
+              // Check if this div doesn't contain other extracted elements
+              const hasExtractedChildren = $child.find('p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, code').length > 0;
+              
+              if (!hasExtractedChildren) {
+                content.push({
+                  type: 'div',
+                  text: divText,
+                  tag: 'div',
+                  selector: this.generateSelector($child, $)
+                });
+              }
+            }
+            
+            // Recursively process child elements to maintain order
+            this.extractContentInOrder($child, content, $);
+            break;
+
+          default:
+            // For other elements, recursively process children
+            this.extractContentInOrder($child, content, $);
+            break;
         }
       }
     });
+  }
 
-    return content;
+  generateSelector($element, $) {
+    // Try to generate a unique CSS selector for the element
+    const tagName = $element[0].name;
+    const id = $element.attr('id');
+    const classes = $element.attr('class');
+    
+    // If element has an ID, use it (most specific)
+    if (id) {
+      return `#${id}`;
+    }
+    
+    // If element has classes, try to create a specific selector
+    if (classes) {
+      const classList = classes.split(' ').filter(c => c.trim());
+      if (classList.length > 0) {
+        // Use the first class that seems content-related
+        const contentClasses = classList.filter(c => 
+          !c.includes('nav') && 
+          !c.includes('menu') && 
+          !c.includes('header') && 
+          !c.includes('footer') &&
+          !c.includes('sidebar')
+        );
+        
+        if (contentClasses.length > 0) {
+          return `${tagName}.${contentClasses[0]}`;
+        }
+      }
+    }
+    
+    // Generate a path-based selector as fallback
+    const path = this.getElementPath($element, $);
+    if (path) {
+      return path;
+    }
+    
+    // Last resort: tag name with nth-child
+    const parent = $element.parent();
+    if (parent.length > 0) {
+      const siblings = parent.children(tagName);
+      const index = siblings.index($element) + 1;
+      return `${tagName}:nth-child(${index})`;
+    }
+    
+    return tagName;
+  }
+
+  getElementPath($element, $) {
+    try {
+      const path = [];
+      let current = $element;
+      
+      while (current.length > 0 && current[0].name !== 'body') {
+        const tagName = current[0].name;
+        const id = current.attr('id');
+        const classes = current.attr('class');
+        
+        let selector = tagName;
+        
+        if (id) {
+          selector = `#${id}`;
+          path.unshift(selector);
+          break; // ID is unique, no need to go further up
+        } else if (classes) {
+          const classList = classes.split(' ').filter(c => c.trim());
+          if (classList.length > 0) {
+            selector = `${tagName}.${classList[0]}`;
+          }
+        }
+        
+        path.unshift(selector);
+        current = current.parent();
+      }
+      
+      return path.join(' > ');
+    } catch (error) {
+      return null;
+    }
   }
 
   isNavigationElement($element) {
@@ -344,6 +466,11 @@ class SmartExtractor {
     markdown += `<!-- Method: ${method} ${method === 'HTTP' ? '(no browser)' : '(Puppeteer)'} -->\n\n`;
 
     for (const item of content) {
+      // Add selector comment for each content piece
+      if (item.selector) {
+        markdown += `<!-- Selector: ${item.selector} -->\n`;
+      }
+      
       switch (item.type) {
         case 'heading':
           const hashes = '#'.repeat(item.level);
@@ -351,6 +478,10 @@ class SmartExtractor {
           break;
         
         case 'paragraph':
+          markdown += `${item.text}\n\n`;
+          break;
+        
+        case 'text':
           markdown += `${item.text}\n\n`;
           break;
         
