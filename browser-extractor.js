@@ -1,51 +1,65 @@
 #!/usr/bin/env node
 
-const fetch = require('node-fetch');
+const puppeteer = require('puppeteer');
 const cheerio = require('cheerio');
 const fs = require('fs-extra');
 const path = require('path');
 
 /**
- * Simple HTTP Content Extractor
- * Extracts content from websites using HTTP requests (no browser needed)
+ * Browser-Based Content Extractor
+ * Extracts content from JavaScript-heavy websites using Puppeteer
  */
 
-class HttpExtractor {
+class BrowserExtractor {
   constructor(config = {}) {
     this.config = {
       siteUrl: config.siteUrl || 'https://example.com',
       outputDir: config.outputDir || './content',
+      headless: config.headless !== false,
+      waitTime: config.waitTime || 3000,
+      viewport: config.viewport || { width: 1200, height: 800 },
       userAgent: config.userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      timeout: config.timeout || 10000,
       ...config
     };
   }
 
   async extract() {
-    console.log('🚀 Starting HTTP content extraction...');
+    console.log('🚀 Starting browser-based content extraction...');
     console.log(`📄 Extracting from: ${this.config.siteUrl}`);
 
+    let browser;
     try {
-      // Fetch the page content
-      console.log('🌐 Fetching page content...');
-      const response = await fetch(this.config.siteUrl, {
-        headers: {
-          'User-Agent': this.config.userAgent,
-          'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
-          'Accept-Language': 'en-US,en;q=0.5',
-          'Accept-Encoding': 'gzip, deflate',
-          'Connection': 'keep-alive',
-          'Upgrade-Insecure-Requests': '1',
-        },
-        timeout: this.config.timeout
+      // Launch browser
+      console.log('🌐 Launching browser...');
+      browser = await puppeteer.launch({
+        headless: this.config.headless ? 'new' : false,
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
       });
 
-      if (!response.ok) {
-        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      const page = await browser.newPage();
+      
+      // Set viewport and user agent
+      await page.setViewport(this.config.viewport);
+      await page.setUserAgent(this.config.userAgent);
+
+      // Navigate to page
+      console.log('📄 Loading page...');
+      await page.goto(this.config.siteUrl, { 
+        waitUntil: 'networkidle2',
+        timeout: 30000 
+      });
+
+      // Wait for content to load
+      if (this.config.waitTime > 0) {
+        console.log(`⏳ Waiting ${this.config.waitTime}ms for content to load...`);
+        await new Promise(resolve => setTimeout(resolve, this.config.waitTime));
       }
 
-      const html = await response.text();
-      const title = this.extractTitle(html);
+      // Get page content
+      const title = await page.title();
+      const html = await page.content();
+
+      await browser.close();
 
       // Parse content
       console.log('📝 Parsing content...');
@@ -67,17 +81,6 @@ class HttpExtractor {
       console.log('✅ Extraction completed successfully!');
       console.log(`📁 Output directory: ${this.config.outputDir}`);
       console.log(`📄 Content extracted: ${content.length} pieces`);
-      
-      if (content.length === 0) {
-        console.log('');
-        console.log('⚠️  No content was extracted. This could be because:');
-        console.log('   - The site uses JavaScript to load content dynamically');
-        console.log('   - The content is in a format not recognized by the extractor');
-        console.log('   - The site requires authentication or has anti-bot protection');
-        console.log('');
-        console.log('💡 For JavaScript-heavy sites, consider using a browser automation tool');
-        console.log('   like Puppeteer or Playwright for full content extraction.');
-      }
 
       return {
         success: true,
@@ -89,16 +92,14 @@ class HttpExtractor {
 
     } catch (error) {
       console.error('❌ Extraction failed:', error.message);
+      if (browser) {
+        await browser.close();
+      }
       return {
         success: false,
         error: error.message
       };
     }
-  }
-
-  extractTitle(html) {
-    const $ = cheerio.load(html);
-    return $('title').text().trim() || 'Untitled Page';
   }
 
   parseContent(html, title) {
@@ -107,17 +108,6 @@ class HttpExtractor {
 
     // Remove script, style, and other non-content elements
     $('script, style, noscript, iframe, embed, object, applet, form, nav, header, footer, aside').remove();
-
-    // Check if this is a JavaScript-heavy site
-    const hasReactRoot = $('#root').length > 0;
-    const hasVueRoot = $('#app').length > 0;
-    const hasAngularRoot = $('[ng-app]').length > 0;
-    
-    if (hasReactRoot || hasVueRoot || hasAngularRoot) {
-      console.log('⚠️  Detected JavaScript framework (React/Vue/Angular)');
-      console.log('   This site requires browser automation for full content extraction');
-      console.log('   Only server-rendered content will be extracted');
-    }
 
     // Find main content areas
     const contentSelectors = [
@@ -132,7 +122,9 @@ class HttpExtractor {
       '.container',
       '.wrapper',
       '.page-content',
-      '.site-content'
+      '.site-content',
+      '#root', // For React apps
+      '#app'   // For Vue apps
     ];
     let $contentArea = null;
 
@@ -217,6 +209,26 @@ class HttpExtractor {
       }
     });
 
+    // Extract divs with substantial text content
+    $contentArea.find('div').each((i, element) => {
+      const $element = $(element);
+      const text = $element.text().trim();
+      
+      // Only extract divs with substantial text content
+      if (text.length > 50 && !this.isNavigationElement($element)) {
+        // Check if this div doesn't contain other extracted elements
+        const hasExtractedChildren = $element.find('p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, code').length > 0;
+        
+        if (!hasExtractedChildren) {
+          content.push({
+            type: 'div',
+            text,
+            tag: 'div'
+          });
+        }
+      }
+    });
+
     return content;
   }
 
@@ -242,7 +254,7 @@ class HttpExtractor {
     let markdown = `# ${title}\n\n`;
     markdown += `<!-- Content extracted from: ${this.config.siteUrl} -->\n`;
     markdown += `<!-- Extracted at: ${new Date().toISOString()} -->\n`;
-    markdown += `<!-- Method: HTTP Request (no browser) -->\n\n`;
+    markdown += `<!-- Method: Browser Automation (Puppeteer) -->\n\n`;
 
     for (const item of content) {
       switch (item.type) {
@@ -275,6 +287,10 @@ class HttpExtractor {
             markdown += `\`${item.text}\`\n\n`;
           }
           break;
+
+        case 'div':
+          markdown += `${item.text}\n\n`;
+          break;
       }
     }
 
@@ -282,16 +298,16 @@ class HttpExtractor {
   }
 
   createReadme(title) {
-    return `# HTTP Content Extractor - Extracted Content
+    return `# Browser Content Extractor - Extracted Content
 
 **Source Site:** ${this.config.siteUrl}
 **Page Title:** ${title}
 **Extracted:** ${new Date().toISOString()}
-**Method:** HTTP Request (no browser automation)
+**Method:** Browser Automation (Puppeteer)
 
 ## About This Content
 
-This content was automatically extracted from the website using the HTTP Content Extractor. This method uses direct HTTP requests and doesn't require browser automation, making it faster and more reliable for static content.
+This content was automatically extracted from the website using the Browser Content Extractor. This method uses browser automation to render JavaScript-heavy websites and extract dynamically loaded content.
 
 ## Files
 
@@ -305,22 +321,21 @@ This content was automatically extracted from the website using the HTTP Content
 3. The metadata comments at the top should not be removed
 4. Save your changes
 
-## Advantages of HTTP Extraction
+## Advantages of Browser Extraction
 
-- ✅ **Faster**: No browser startup time
-- ✅ **Lighter**: No browser dependencies
-- ✅ **More Reliable**: Fewer moving parts
-- ✅ **Better for Static Content**: Perfect for most websites
-- ✅ **No JavaScript Rendering**: Extracts server-rendered content
+- ✅ **JavaScript Rendering**: Handles React, Vue, Angular, and other SPAs
+- ✅ **Dynamic Content**: Extracts content loaded via AJAX/fetch
+- ✅ **Complete Content**: Gets all rendered content, not just initial HTML
+- ✅ **Interactive Elements**: Can handle user-triggered content loading
 
-## Limitations
+## Requirements
 
-- ❌ **No JavaScript Rendering**: Won't extract dynamically loaded content
-- ❌ **No Interactive Elements**: Can't handle complex SPAs
-- ❌ **Limited to Static Content**: Best for traditional websites
+- Requires Puppeteer (browser automation)
+- Slightly slower than HTTP extraction
+- More resource-intensive
 
 ---
-Generated by HTTP Content Extractor
+Generated by Browser Content Extractor
 `;
   }
 }
@@ -330,24 +345,25 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   
   if (args.length === 0) {
-    console.log('Usage: node http-extractor.js <url> [output-dir]');
-    console.log('Example: node http-extractor.js https://example.com ./my-content');
+    console.log('Usage: node browser-extractor.js <url> [output-dir]');
+    console.log('Example: node browser-extractor.js https://example.com ./my-content');
     console.log('');
     console.log('Options:');
     console.log('  <url>        The website URL to extract content from');
     console.log('  [output-dir] Output directory (default: ./content)');
     console.log('');
-    console.log('This extractor uses HTTP requests and is perfect for static websites.');
+    console.log('This extractor uses browser automation and can handle JavaScript-heavy websites.');
     process.exit(1);
   }
 
   const url = args[0];
   const outputDir = args[1] || './content';
 
-  const extractor = new HttpExtractor({
+  const extractor = new BrowserExtractor({
     siteUrl: url,
     outputDir,
-    timeout: 10000
+    headless: true,
+    waitTime: 3000
   });
 
   extractor.extract().then(result => {
@@ -362,4 +378,4 @@ if (require.main === module) {
   });
 }
 
-module.exports = HttpExtractor;
+module.exports = BrowserExtractor;

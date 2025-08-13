@@ -2,12 +2,12 @@
   "name": "content-sync",
   "version": "1.0.0",
   "description": "Extract text content from React/Next.js websites and convert to editable Markdown files",
-  "main": "http-extractor.js",
+  "main": "smart-extractor.js",
   "bin": {
-    "content-sync": "http-extractor.js"
+    "content-sync": "smart-extractor.js"
   },
   "scripts": {
-    "start": "node http-extractor.js"
+    "start": "node smart-extractor.js"
   },
   "keywords": [
     "content-sync",
@@ -23,7 +23,8 @@
   "dependencies": {
     "cheerio": "^1.0.0-rc.12",
     "fs-extra": "^11.1.1",
-    "node-fetch": "^2.7.0"
+    "node-fetch": "^2.7.0",
+    "puppeteer": "^24.16.1"
   },
   "devDependencies": {
     "@types/fs-extra": "^11.0.1",

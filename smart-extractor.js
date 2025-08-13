@@ -6,38 +6,64 @@ const fs = require('fs-extra');
 const path = require('path');
 
 /**
- * Simple HTTP Content Extractor
- * Extracts content from websites using HTTP requests (no browser needed)
+ * Smart Content Extractor
+ * Automatically chooses between HTTP and browser extraction based on website type
  */
 
-class HttpExtractor {
+class SmartExtractor {
   constructor(config = {}) {
     this.config = {
       siteUrl: config.siteUrl || 'https://example.com',
       outputDir: config.outputDir || './content',
-      userAgent: config.userAgent || 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
-      timeout: config.timeout || 10000,
+      forceBrowser: config.forceBrowser || false,
+      forceHttp: config.forceHttp || false,
       ...config
     };
   }
 
   async extract() {
-    console.log('🚀 Starting HTTP content extraction...');
+    console.log('🚀 Starting smart content extraction...');
     console.log(`📄 Extracting from: ${this.config.siteUrl}`);
 
     try {
-      // Fetch the page content
-      console.log('🌐 Fetching page content...');
+      // First, try HTTP extraction to check if it's a static site
+      if (!this.config.forceBrowser) {
+        console.log('🔍 Checking if HTTP extraction is sufficient...');
+        const httpResult = await this.tryHttpExtraction();
+        
+        if (httpResult.success && httpResult.content.length > 0) {
+          console.log('✅ HTTP extraction successful! Using HTTP method.');
+          return httpResult;
+        } else {
+          console.log('⚠️  HTTP extraction found no content. Switching to browser extraction...');
+        }
+      }
+
+      // Use browser extraction
+      console.log('🌐 Using browser extraction for JavaScript-heavy content...');
+      return await this.browserExtraction();
+
+    } catch (error) {
+      console.error('❌ Extraction failed:', error.message);
+      return {
+        success: false,
+        error: error.message
+      };
+    }
+  }
+
+  async tryHttpExtraction() {
+    try {
       const response = await fetch(this.config.siteUrl, {
         headers: {
-          'User-Agent': this.config.userAgent,
+          'User-Agent': 'Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36',
           'Accept': 'text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8',
           'Accept-Language': 'en-US,en;q=0.5',
           'Accept-Encoding': 'gzip, deflate',
           'Connection': 'keep-alive',
           'Upgrade-Insecure-Requests': '1',
         },
-        timeout: this.config.timeout
+        timeout: 10000
       });
 
       if (!response.ok) {
@@ -46,6 +72,74 @@ class HttpExtractor {
 
       const html = await response.text();
       const title = this.extractTitle(html);
+      const content = this.parseContent(html, title);
+
+      if (content.length === 0) {
+        return { success: false, content: [] };
+      }
+
+      // Create output directory
+      await fs.ensureDir(this.config.outputDir);
+
+      // Write markdown file
+      const markdown = this.convertToMarkdown(content, title, 'HTTP');
+      const outputPath = path.join(this.config.outputDir, 'extracted-content.md');
+      await fs.writeFile(outputPath, markdown, 'utf-8');
+
+      // Create README
+      const readme = this.createReadme(title, 'HTTP');
+      const readmePath = path.join(this.config.outputDir, 'README.md');
+      await fs.writeFile(readmePath, readme, 'utf-8');
+
+      return {
+        success: true,
+        title,
+        content,
+        outputPath,
+        readmePath,
+        method: 'HTTP'
+      };
+
+    } catch (error) {
+      return { success: false, error: error.message };
+    }
+  }
+
+  async browserExtraction() {
+    // Dynamically import Puppeteer to avoid loading it for HTTP-only sites
+    const puppeteer = require('puppeteer');
+    
+    let browser;
+    try {
+      // Launch browser
+      console.log('🌐 Launching browser...');
+      browser = await puppeteer.launch({
+        headless: 'new',
+        args: ['--no-sandbox', '--disable-setuid-sandbox']
+      });
+
+      const page = await browser.newPage();
+      
+      // Set viewport and user agent
+      await page.setViewport({ width: 1200, height: 800 });
+      await page.setUserAgent('Mozilla/5.0 (Macintosh; Intel Mac OS X 10_15_7) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/91.0.4472.124 Safari/537.36');
+
+      // Navigate to page
+      console.log('📄 Loading page...');
+      await page.goto(this.config.siteUrl, { 
+        waitUntil: 'networkidle2',
+        timeout: 30000 
+      });
+
+      // Wait for content to load
+      console.log('⏳ Waiting for content to load...');
+      await new Promise(resolve => setTimeout(resolve, 3000));
+
+      // Get page content
+      const title = await page.title();
+      const html = await page.content();
+
+      await browser.close();
 
       // Parse content
       console.log('📝 Parsing content...');
@@ -55,44 +149,29 @@ class HttpExtractor {
       await fs.ensureDir(this.config.outputDir);
 
       // Write markdown file
-      const markdown = this.convertToMarkdown(content, title);
+      const markdown = this.convertToMarkdown(content, title, 'Browser');
       const outputPath = path.join(this.config.outputDir, 'extracted-content.md');
       await fs.writeFile(outputPath, markdown, 'utf-8');
 
       // Create README
-      const readme = this.createReadme(title);
+      const readme = this.createReadme(title, 'Browser');
       const readmePath = path.join(this.config.outputDir, 'README.md');
       await fs.writeFile(readmePath, readme, 'utf-8');
-
-      console.log('✅ Extraction completed successfully!');
-      console.log(`📁 Output directory: ${this.config.outputDir}`);
-      console.log(`📄 Content extracted: ${content.length} pieces`);
-      
-      if (content.length === 0) {
-        console.log('');
-        console.log('⚠️  No content was extracted. This could be because:');
-        console.log('   - The site uses JavaScript to load content dynamically');
-        console.log('   - The content is in a format not recognized by the extractor');
-        console.log('   - The site requires authentication or has anti-bot protection');
-        console.log('');
-        console.log('💡 For JavaScript-heavy sites, consider using a browser automation tool');
-        console.log('   like Puppeteer or Playwright for full content extraction.');
-      }
 
       return {
         success: true,
         title,
         content,
         outputPath,
-        readmePath
+        readmePath,
+        method: 'Browser'
       };
 
     } catch (error) {
-      console.error('❌ Extraction failed:', error.message);
-      return {
-        success: false,
-        error: error.message
-      };
+      if (browser) {
+        await browser.close();
+      }
+      throw error;
     }
   }
 
@@ -115,8 +194,6 @@ class HttpExtractor {
     
     if (hasReactRoot || hasVueRoot || hasAngularRoot) {
       console.log('⚠️  Detected JavaScript framework (React/Vue/Angular)');
-      console.log('   This site requires browser automation for full content extraction');
-      console.log('   Only server-rendered content will be extracted');
     }
 
     // Find main content areas
@@ -132,7 +209,9 @@ class HttpExtractor {
       '.container',
       '.wrapper',
       '.page-content',
-      '.site-content'
+      '.site-content',
+      '#root', // For React apps
+      '#app'   // For Vue apps
     ];
     let $contentArea = null;
 
@@ -217,6 +296,26 @@ class HttpExtractor {
       }
     });
 
+    // Extract divs with substantial text content (for browser extraction)
+    $contentArea.find('div').each((i, element) => {
+      const $element = $(element);
+      const text = $element.text().trim();
+      
+      // Only extract divs with substantial text content
+      if (text.length > 50 && !this.isNavigationElement($element)) {
+        // Check if this div doesn't contain other extracted elements
+        const hasExtractedChildren = $element.find('p, h1, h2, h3, h4, h5, h6, ul, ol, blockquote, pre, code').length > 0;
+        
+        if (!hasExtractedChildren) {
+          content.push({
+            type: 'div',
+            text,
+            tag: 'div'
+          });
+        }
+      }
+    });
+
     return content;
   }
 
@@ -238,11 +337,11 @@ class HttpExtractor {
     return false;
   }
 
-  convertToMarkdown(content, title) {
+  convertToMarkdown(content, title, method) {
     let markdown = `# ${title}\n\n`;
     markdown += `<!-- Content extracted from: ${this.config.siteUrl} -->\n`;
     markdown += `<!-- Extracted at: ${new Date().toISOString()} -->\n`;
-    markdown += `<!-- Method: HTTP Request (no browser) -->\n\n`;
+    markdown += `<!-- Method: ${method} ${method === 'HTTP' ? '(no browser)' : '(Puppeteer)'} -->\n\n`;
 
     for (const item of content) {
       switch (item.type) {
@@ -275,23 +374,31 @@ class HttpExtractor {
             markdown += `\`${item.text}\`\n\n`;
           }
           break;
+
+        case 'div':
+          markdown += `${item.text}\n\n`;
+          break;
       }
     }
 
     return markdown;
   }
 
-  createReadme(title) {
-    return `# HTTP Content Extractor - Extracted Content
+  createReadme(title, method) {
+    const methodDescription = method === 'HTTP' 
+      ? 'HTTP Request (fast, lightweight)' 
+      : 'Browser Automation (handles JavaScript)';
+
+    return `# Smart Content Extractor - Extracted Content
 
 **Source Site:** ${this.config.siteUrl}
 **Page Title:** ${title}
 **Extracted:** ${new Date().toISOString()}
-**Method:** HTTP Request (no browser automation)
+**Method:** ${methodDescription}
 
 ## About This Content
 
-This content was automatically extracted from the website using the HTTP Content Extractor. This method uses direct HTTP requests and doesn't require browser automation, making it faster and more reliable for static content.
+This content was automatically extracted from the website using the Smart Content Extractor. The system automatically chose the best extraction method based on the website's structure.
 
 ## Files
 
@@ -305,22 +412,16 @@ This content was automatically extracted from the website using the HTTP Content
 3. The metadata comments at the top should not be removed
 4. Save your changes
 
-## Advantages of HTTP Extraction
+## Extraction Method Used
 
-- ✅ **Faster**: No browser startup time
-- ✅ **Lighter**: No browser dependencies
-- ✅ **More Reliable**: Fewer moving parts
-- ✅ **Better for Static Content**: Perfect for most websites
-- ✅ **No JavaScript Rendering**: Extracts server-rendered content
-
-## Limitations
-
-- ❌ **No JavaScript Rendering**: Won't extract dynamically loaded content
-- ❌ **No Interactive Elements**: Can't handle complex SPAs
-- ❌ **Limited to Static Content**: Best for traditional websites
+**${method} Extraction:**
+${method === 'HTTP' 
+  ? '- ✅ Fast and lightweight\n- ✅ No browser dependencies\n- ✅ Perfect for static websites\n- ❌ Cannot handle JavaScript-rendered content'
+  : '- ✅ Handles JavaScript-heavy websites\n- ✅ Extracts dynamically loaded content\n- ✅ Works with React, Vue, Angular\n- ⚠️  Requires browser automation (slower)'
+}
 
 ---
-Generated by HTTP Content Extractor
+Generated by Smart Content Extractor
 `;
   }
 }
@@ -330,36 +431,41 @@ if (require.main === module) {
   const args = process.argv.slice(2);
   
   if (args.length === 0) {
-    console.log('Usage: node http-extractor.js <url> [output-dir]');
-    console.log('Example: node http-extractor.js https://example.com ./my-content');
+    console.log('Usage: node smart-extractor.js <url> [output-dir]');
+    console.log('Example: node smart-extractor.js https://example.com ./my-content');
     console.log('');
     console.log('Options:');
     console.log('  <url>        The website URL to extract content from');
     console.log('  [output-dir] Output directory (default: ./content)');
     console.log('');
-    console.log('This extractor uses HTTP requests and is perfect for static websites.');
+    console.log('This extractor automatically chooses between HTTP and browser extraction.');
     process.exit(1);
   }
 
   const url = args[0];
   const outputDir = args[1] || './content';
 
-  const extractor = new HttpExtractor({
+  const extractor = new SmartExtractor({
     siteUrl: url,
-    outputDir,
-    timeout: 10000
+    outputDir
   });
 
   extractor.extract().then(result => {
     if (result.success) {
-      console.log('\n📖 Next steps:');
+      console.log('');
+      console.log(`✅ Extraction completed using ${result.method} method!`);
+      console.log(`📁 Output directory: ${result.outputDir}`);
+      console.log(`📄 Content extracted: ${result.content.length} pieces`);
+      console.log('');
+      console.log('📖 Next steps:');
       console.log('1. Review the extracted content in the output directory');
       console.log('2. Edit the markdown files as needed');
       console.log('3. The content is ready for use!');
     } else {
+      console.error('❌ Extraction failed:', result.error);
       process.exit(1);
     }
   });
 }
 
-module.exports = HttpExtractor;
+module.exports = SmartExtractor;
