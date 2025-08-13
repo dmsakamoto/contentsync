@@ -4,10 +4,11 @@ Extract text content from websites and convert it into editable Markdown files. 
 
 ## 🚀 Features
 
-- **Fast HTTP Extraction**: Uses direct HTTP requests for quick, reliable content extraction
-- **Smart Content Parsing**: Automatically identifies and extracts semantic content areas from websites
+- **Smart Extraction**: Automatically chooses between HTTP and browser extraction methods
+- **Dual-Mode Operation**: Fast HTTP extraction for static sites, browser automation for JavaScript-heavy sites
+- **Content Ordering**: Preserves natural document flow and hierarchy
+- **CSS Selector Generation**: Creates precise selectors for content synchronization
 - **Markdown Conversion**: Converts HTML content to clean, editable Markdown format
-- **No Browser Required**: Lightweight extraction without browser automation dependencies
 - **Multiple Content Types**: Extracts headings, paragraphs, lists, blockquotes, and code blocks
 - **Navigation Filtering**: Intelligently filters out navigation and non-content elements
 - **Simple CLI**: Easy-to-use command-line interface
@@ -50,7 +51,7 @@ npm start https://example.com ./my-content
 
 ```bash
 # Run directly with node
-node http-extractor.js https://example.com ./my-content
+node smart-extractor.js https://example.com ./my-content
 ```
 
 ### Review and Edit
@@ -69,16 +70,31 @@ The extracted content includes:
 - **Lists**: Both ordered and unordered lists
 - **Blockquotes**: Quoted content
 - **Code blocks**: Pre-formatted code sections
+- **CSS Selectors**: Comments with precise selectors for each content piece
 
 ## ⚙️ How It Works
 
-The HTTP extractor works by:
+The smart extractor automatically chooses the best extraction method:
 
-1. **Making HTTP Requests**: Direct requests to websites without browser automation
-2. **HTML Parsing**: Uses Cheerio to parse and analyze HTML content
-3. **Smart Content Detection**: Identifies main content areas using semantic selectors
-4. **Navigation Filtering**: Automatically removes navigation, headers, and footers
-5. **Markdown Conversion**: Converts HTML to clean, editable Markdown format
+### 1. HTTP Extraction (Fast)
+- **Direct HTTP Requests**: No browser required
+- **HTML Parsing**: Uses Cheerio for fast parsing
+- **Static Content**: Perfect for traditional websites
+- **Instant Results**: No startup time
+
+### 2. Browser Extraction (Comprehensive)
+- **Puppeteer Automation**: Full browser rendering
+- **JavaScript Support**: Handles React, Vue, Angular, etc.
+- **Dynamic Content**: Extracts client-side rendered content
+- **Complete Rendering**: Waits for content to load
+
+### Smart Method Selection
+
+The extractor automatically:
+1. **Tries HTTP First**: Fast extraction for static sites
+2. **Detects JavaScript**: Identifies React/Vue/Angular frameworks
+3. **Falls Back to Browser**: When HTTP extraction finds no content
+4. **Provides Feedback**: Shows which method was used
 
 ### Content Detection Strategy
 
@@ -100,29 +116,29 @@ The extractor automatically removes:
 
 ## 🎯 Advantages
 
-### ✅ **Fast & Lightweight**
-- No browser startup time
-- No Puppeteer dependencies
-- Direct HTTP requests
-- Instant content extraction
+### ✅ **Smart & Adaptive**
+- Automatically chooses the best extraction method
+- Handles both static and dynamic websites
+- Preserves content ordering and hierarchy
+- Generates precise CSS selectors
 
-### ✅ **Reliable**
-- Fewer moving parts
-- No browser crashes
-- Consistent results
-- Better error handling
+### ✅ **Fast & Reliable**
+- HTTP extraction for instant results
+- Browser extraction when needed
+- Consistent results across different sites
+- Robust error handling
 
-### ✅ **Perfect for Most Websites**
-- Works with static content
-- Handles server-rendered pages
-- Extracts all common content types
-- Filters navigation automatically
+### ✅ **Perfect for Content Sync**
+- CSS selectors enable precise targeting
+- Natural document flow preserved
+- Clean, editable markdown output
+- Metadata for tracking changes
 
 ## ⚠️ Limitations
 
-- **No JavaScript Rendering**: Won't extract dynamically loaded content
-- **Static Content Only**: Best for traditional websites
-- **No Interactive Elements**: Can't handle complex SPAs
+- **Browser Dependencies**: Puppeteer required for JavaScript-heavy sites
+- **Performance**: Browser extraction is slower than HTTP
+- **Memory Usage**: Browser automation uses more resources
 
 ## 🐛 Troubleshooting
 
@@ -136,7 +152,7 @@ The extractor automatically removes:
 
 2. **No Content Found**
    - The website might use JavaScript to load content
-   - Try a different website with static content
+   - The extractor will automatically switch to browser mode
    - Check if the site requires authentication
 
 3. **Permission Errors**
@@ -145,32 +161,53 @@ The extractor automatically removes:
    mkdir -p ./my-content
    ```
 
+4. **Browser Launch Issues**
+   ```bash
+   # On Linux, you might need additional dependencies
+   sudo apt-get install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
+   ```
+
 ## 📝 Content Editing
 
 ### Markdown Format
 
-The extracted content includes metadata comments:
+The extracted content includes metadata and selectors:
 
 ```markdown
 # Welcome to Our Site
 
 <!-- Content extracted from: https://example.com -->
 <!-- Extracted at: 2024-01-15T10:30:00.000Z -->
-<!-- Method: HTTP Request (no browser) -->
+<!-- Method: Smart (HTTP/Browser) -->
 
+<!-- Selector: h1.text-5xl -->
+# Welcome to Our Site
+
+<!-- Selector: p.text-xl -->
 Welcome to our amazing website!
 
+<!-- Selector: h2.text-4xl -->
 ## About Us
 
+<!-- Selector: p.text-lg -->
 We are a company dedicated to...
 ```
+
+### CSS Selectors
+
+Each content piece includes a CSS selector comment that enables:
+- **Precise Targeting**: Find exact elements for content sync
+- **Easy Replacement**: Update specific content sections
+- **Version Control**: Track changes to specific elements
+- **Automation**: Programmatic content updates
 
 ### Editing Instructions
 
 1. Edit the content in `extracted-content.md`
 2. Maintain the structure and formatting
-3. The metadata comments at the top should not be removed
-4. Save your changes
+3. Keep the metadata comments at the top
+4. Preserve CSS selector comments for content sync
+5. Save your changes
 
 ## 🤝 Contributing
 
@@ -189,5 +226,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Status**: ✅ Production Ready  
-**Method**: HTTP Extraction (no browser)  
-**Dependencies**: 3 packages (cheerio, fs-extra, node-fetch)
+**Method**: Smart Extraction (HTTP + Browser)  
+**Dependencies**: 4 packages (cheerio, fs-extra, node-fetch, puppeteer)
