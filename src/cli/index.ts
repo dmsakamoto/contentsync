@@ -98,23 +98,23 @@ async function extractCommand(url: string, options: any) {
   const logger = new ConsoleLogger(options.verbose);
 
   // Create orchestrator
-  const config = configManager.getConfig();
-  const orchestrator = new ExtractionOrchestrator(config, logger);
+  const orchestrator = new ExtractionOrchestrator(configManager, logger);
 
   // Run extraction
   const result = await orchestrator.extract();
 
   // Display results
+  const configData = configManager.getConfig();
   console.log('');
   if (result.success) {
     console.log(chalk.green('✅ Extraction completed successfully!'));
-    console.log(chalk.gray(`📁 Output directory: ${config.outputDir}`));
+    console.log(chalk.gray(`📁 Output directory: ${configData.outputDir}`));
     console.log(chalk.gray(`📄 Pages processed: ${result.metadata.pages.length}`));
     console.log(chalk.gray(`📝 Content pieces: ${Object.keys(result.metadata.contentMap).length}`));
     console.log(chalk.gray(`⏱️  Processing time: ${result.processingTime}ms`));
   } else {
     console.log(chalk.yellow('⚠️  Extraction completed with errors'));
-    console.log(chalk.gray(`📁 Output directory: ${config.outputDir}`));
+    console.log(chalk.gray(`📁 Output directory: ${configData.outputDir}`));
     console.log(chalk.gray(`❌ Errors: ${result.errors.length}`));
     console.log(chalk.gray(`⚠️  Warnings: ${result.warnings.length}`));
   }
