@@ -5,13 +5,16 @@ Extract text content from websites and convert it into editable Markdown files. 
 ## 🚀 Features
 
 - **Smart Extraction**: Automatically chooses between HTTP and browser extraction methods
+- **Multi-Page Crawling**: Extract entire websites with automatic route discovery
 - **Dual-Mode Operation**: Fast HTTP extraction for static sites, browser automation for JavaScript-heavy sites
 - **Content Ordering**: Preserves natural document flow and hierarchy
 - **CSS Selector Generation**: Creates precise selectors for content synchronization
+- **Route-Based Organization**: Files named and organized according to website routes
 - **Markdown Conversion**: Converts HTML content to clean, editable Markdown format
 - **Multiple Content Types**: Extracts headings, paragraphs, lists, blockquotes, and code blocks
 - **Navigation Filtering**: Intelligently filters out navigation and non-content elements
-- **Simple CLI**: Easy-to-use command-line interface
+- **Simple CLI**: Easy-to-use command-line interface with flexible options
+- **Modular Architecture**: Clean, maintainable codebase organized in modules
 
 ## 📋 Requirements
 
@@ -34,7 +37,7 @@ npm link
 
 ## 🎯 Quick Start
 
-### Simple Extraction
+### Single Page Extraction
 
 ```bash
 # Basic extraction
@@ -47,21 +50,72 @@ content-sync https://example.com ./my-content
 npm start https://example.com ./my-content
 ```
 
+### Multi-Page Website Crawling
+
+```bash
+# Extract main pages only (depth 1)
+content-sync https://example.com ./my-content --main
+
+# Crawl to specific depth
+content-sync https://example.com ./my-content --depth 3
+
+# Crawl with filters to exclude certain pages
+content-sync https://example.com ./my-content --depth 2 --filter admin --filter login
+
+# Limit maximum pages to extract
+content-sync https://example.com ./my-content --main --max-pages 10
+```
+
 ### Direct Node Usage
 
 ```bash
 # Run directly with node
-node smart-extractor.js https://example.com ./my-content
+node src/cli.js https://example.com ./my-content
+
+# Multi-page crawling with node
+node src/cli.js https://example.com ./my-content --main
 ```
 
-### Review and Edit
+## 📁 Project Structure
 
-The extracted content will be saved in the specified output directory with the following structure:
+```
+contentsync/
+├── src/                          # Source code directory
+│   ├── cli.js                    # Command line interface
+│   ├── extractor.js              # Main orchestrator
+│   ├── http-extractor.js         # HTTP-based extraction
+│   ├── browser-extractor.js      # Browser-based extraction
+│   ├── content-parser.js         # HTML content parsing
+│   ├── link-parser.js            # Link discovery and parsing
+│   ├── crawler.js                # Multi-page crawling
+│   └── utils.js                  # Utilities and markdown conversion
+├── package.json                  # Project configuration
+├── package-lock.json             # Dependency lock file
+├── README.md                     # This documentation
+├── LICENSE                       # License file
+└── .gitignore                    # Git ignore rules
+```
 
+## 📁 Output Structure
+
+### Single Page Extraction
 ```
 my-content/
 ├── README.md              # Overview and editing instructions
 └── extracted-content.md   # Main content in Markdown format
+```
+
+### Multi-Page Crawling
+```
+my-content/
+├── index.md               # Homepage (/)
+├── about.md               # About page (/about)
+├── contact.md             # Contact page (/contact)
+├── services.md            # Services page (/services)
+├── blog/
+│   ├── post-1.md          # Blog post (/blog/post-1)
+│   └── post-2.md          # Blog post (/blog/post-2)
+└── README.md              # Overview with all pages listed
 ```
 
 The extracted content includes:
@@ -87,6 +141,12 @@ The smart extractor automatically chooses the best extraction method:
 - **JavaScript Support**: Handles React, Vue, Angular, etc.
 - **Dynamic Content**: Extracts client-side rendered content
 - **Complete Rendering**: Waits for content to load
+
+### 3. Multi-Page Crawling
+- **Route Discovery**: Automatically finds all internal links
+- **Depth Control**: Configurable crawling depth (1-5 levels)
+- **Smart Filtering**: Exclude pages based on patterns
+- **File Organization**: Creates logical structure based on routes
 
 ### Smart Method Selection
 
@@ -122,6 +182,12 @@ The extractor automatically removes:
 - Preserves content ordering and hierarchy
 - Generates precise CSS selectors
 
+### ✅ **Multi-Page Capable**
+- Extracts entire websites automatically
+- Creates organized file structure
+- Supports complex route hierarchies
+- Comprehensive overview generation
+
 ### ✅ **Fast & Reliable**
 - HTTP extraction for instant results
 - Browser extraction when needed
@@ -134,11 +200,52 @@ The extractor automatically removes:
 - Clean, editable markdown output
 - Metadata for tracking changes
 
+### ✅ **Modular & Maintainable**
+- Clean, organized codebase
+- Easy to extend and modify
+- Clear separation of concerns
+- Professional project structure
+
+## 📋 Command Line Options
+
+### Single Page Extraction
+```bash
+content-sync <url> [output-dir]
+```
+
+### Multi-Page Crawling
+```bash
+content-sync <url> [output-dir] [options]
+```
+
+### Available Options
+- **`--main`**: Extract main pages only (depth 1)
+- **`--depth <number>`**: Crawl to specific depth (1-5)
+- **`--filter <pattern>`**: Filter out pages containing pattern (can be used multiple times)
+- **`--max-pages <number>`**: Maximum pages to extract (default: 50)
+
+### Examples
+```bash
+# Single page
+content-sync https://example.com ./output
+
+# Main pages only
+content-sync https://example.com ./output --main
+
+# Deep crawl with filters
+content-sync https://example.com ./output --depth 3 --filter admin --filter login
+
+# Limited crawl
+content-sync https://example.com ./output --main --max-pages 10
+```
+
 ## ⚠️ Limitations
 
 - **Browser Dependencies**: Puppeteer required for JavaScript-heavy sites
 - **Performance**: Browser extraction is slower than HTTP
 - **Memory Usage**: Browser automation uses more resources
+- **Crawl Depth**: Maximum depth of 5 levels for performance
+- **Page Limits**: Default maximum of 50 pages per crawl
 
 ## 🐛 Troubleshooting
 
@@ -166,6 +273,12 @@ The extractor automatically removes:
    # On Linux, you might need additional dependencies
    sudo apt-get install -y gconf-service libasound2 libatk1.0-0 libc6 libcairo2 libcups2 libdbus-1-3 libexpat1 libfontconfig1 libgcc1 libgconf-2-4 libgdk-pixbuf2.0-0 libglib2.0-0 libgtk-3-0 libnspr4 libpango-1.0-0 libpangocairo-1.0-0 libstdc++6 libx11-6 libx11-xcb1 libxcb1 libxcomposite1 libxcursor1 libxdamage1 libxext6 libxfixes3 libxi6 libxrandr2 libxrender1 libxss1 libxtst6 ca-certificates fonts-liberation libappindicator1 libnss3 lsb-release xdg-utils wget
    ```
+
+5. **Multi-Page Crawling Issues**
+   - Check if the site has internal links
+   - Try increasing the depth with `--depth 2`
+   - Use filters to exclude problematic pages
+   - Check the maximum page limit with `--max-pages`
 
 ## 📝 Content Editing
 
@@ -203,11 +316,54 @@ Each content piece includes a CSS selector comment that enables:
 
 ### Editing Instructions
 
-1. Edit the content in `extracted-content.md`
+1. Edit the content in the markdown files
 2. Maintain the structure and formatting
 3. Keep the metadata comments at the top
 4. Preserve CSS selector comments for content sync
 5. Save your changes
+
+### Multi-Page Organization
+
+When crawling multiple pages:
+- Each page gets its own markdown file
+- Files are named according to routes
+- Nested routes create subfolders
+- Overview README lists all extracted pages
+
+## 🏗️ Development
+
+### Project Structure
+
+The codebase is organized into modular components:
+
+- **`src/cli.js`**: Command line interface and argument parsing
+- **`src/extractor.js`**: Main orchestrator for smart method selection
+- **`src/http-extractor.js`**: HTTP-based content extraction
+- **`src/browser-extractor.js`**: Browser-based content extraction
+- **`src/content-parser.js`**: HTML parsing and content extraction
+- **`src/link-parser.js`**: Link discovery and URL parsing
+- **`src/crawler.js`**: Multi-page website crawling
+- **`src/utils.js`**: Markdown conversion and utilities
+
+### Adding New Features
+
+1. **New Extraction Method**: Add a new extractor in `src/`
+2. **Content Types**: Extend `src/content-parser.js`
+3. **CLI Options**: Update `src/cli.js`
+4. **Utilities**: Add to `src/utils.js`
+
+### Testing
+
+```bash
+# Test single page extraction
+content-sync https://example.com ./test-output
+
+# Test multi-page crawling
+content-sync https://example.com ./test-output --main
+
+# Test with filters
+content-sync https://example.com ./test-output --depth 2 --filter admin
+```
 
 ## 🤝 Contributing
 
@@ -218,6 +374,25 @@ The project is open for contributions! Key areas for improvement:
 3. **Configuration Options**: Custom selectors and filtering rules
 4. **Performance**: Optimize for large websites
 5. **Error Handling**: Better error messages and recovery
+6. **Crawling Features**: Sitemap support, robots.txt parsing, rate limiting
+7. **Testing**: Unit tests and integration tests
+8. **Documentation**: API documentation and examples
+
+### Development Setup
+
+```bash
+# Clone and install
+git clone <repository-url>
+cd contentsync
+npm install
+npm link
+
+# Make changes to files in src/
+# Test your changes
+content-sync https://example.com ./test-output
+
+# Submit a pull request
+```
 
 ## 📄 License
 
@@ -226,5 +401,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Status**: ✅ Production Ready  
-**Method**: Smart Extraction (HTTP + Browser)  
+**Method**: Smart Extraction (HTTP + Browser) + Multi-Page Crawling  
+**Architecture**: Modular (8 files, ~1,260 lines total)  
 **Dependencies**: 4 packages (cheerio, fs-extra, node-fetch, puppeteer)
