@@ -15,6 +15,7 @@ Extract text content from websites and convert it into editable Markdown files. 
 - **Navigation Filtering**: Intelligently filters out navigation and non-content elements
 - **Simple CLI**: Easy-to-use command-line interface with flexible options
 - **Modular Architecture**: Clean, maintainable codebase organized in modules
+- **NPM Package**: Can be installed and used as a dependency in other projects
 
 ## 📋 Requirements
 
@@ -37,7 +38,9 @@ npm link
 
 ## 🎯 Quick Start
 
-### Single Page Extraction
+### CLI Usage
+
+#### Single Page Extraction
 
 ```bash
 # Basic extraction
@@ -50,7 +53,7 @@ content-sync https://example.com ./my-content
 npm start https://example.com ./my-content
 ```
 
-### Multi-Page Website Crawling
+#### Multi-Page Website Crawling
 
 ```bash
 # Extract main pages only (depth 1)
@@ -66,7 +69,7 @@ content-sync https://example.com ./my-content --depth 2 --filter admin --filter 
 content-sync https://example.com ./my-content --main --max-pages 10
 ```
 
-### Direct Node Usage
+#### Direct Node Usage
 
 ```bash
 # Run directly with node
@@ -74,6 +77,90 @@ node src/cli.js https://example.com ./my-content
 
 # Multi-page crawling with node
 node src/cli.js https://example.com ./my-content --main
+```
+
+### 📦 Package Usage
+
+content-sync can be used as an npm package in your own applications:
+
+```bash
+# Install as dependency
+npm install content-sync
+```
+
+#### Basic Integration
+
+```javascript
+const SmartExtractor = require('content-sync');
+
+// Single page extraction
+const extractor = new SmartExtractor({
+  siteUrl: 'https://example.com',
+  outputDir: './my-content'
+});
+
+const result = await extractor.extract();
+console.log(`Extracted ${result.content.length} pieces`);
+```
+
+#### Multi-Page Crawling
+
+```javascript
+const WebsiteCrawler = require('content-sync/src/crawler');
+
+const crawler = new WebsiteCrawler({
+  waitTime: 2000,
+  userAgent: 'Custom User Agent'
+});
+
+await crawler.crawlWebsite('https://example.com', './my-content', {
+  depth: 2,
+  filter: ['admin', 'login'],
+  maxPages: 20
+});
+```
+
+#### Direct Extraction Methods
+
+```javascript
+const HttpExtractor = require('content-sync/src/http-extractor');
+const BrowserExtractor = require('content-sync/src/browser-extractor');
+
+// HTTP extraction (fast, static content)
+const httpExtractor = new HttpExtractor({
+  siteUrl: 'https://example.com',
+  outputDir: './my-content'
+});
+const httpResult = await httpExtractor.extractFromUrl('https://example.com');
+
+// Browser extraction (JavaScript-heavy sites)
+const browserExtractor = new BrowserExtractor({
+  siteUrl: 'https://example.com',
+  outputDir: './my-content'
+});
+const browserResult = await browserExtractor.extractFromUrl('https://example.com');
+```
+
+#### Custom Content Processing
+
+```javascript
+const SmartExtractor = require('content-sync');
+
+const extractor = new SmartExtractor({
+  siteUrl: 'https://example.com',
+  outputDir: './my-content'
+});
+
+const result = await extractor.extract();
+
+// Custom processing of extracted content
+const processedContent = result.content.map(item => ({
+  ...item,
+  customField: 'Processed by my app',
+  timestamp: new Date().toISOString()
+}));
+
+console.log('Processed content:', processedContent);
 ```
 
 ## 📁 Project Structure
