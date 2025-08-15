@@ -17,6 +17,7 @@ Extract text content from websites and convert it into editable Markdown files. 
 - **Modular Architecture**: Clean, maintainable codebase organized in modules
 - **NPM Package**: Can be installed and used as a dependency in other projects
 - **Local File Processing**: Process HTML files and directories from your local filesystem
+- **Reverse Sync**: Sync edited markdown content back to original HTML files
 
 ## 📋 Requirements
 
@@ -79,8 +80,12 @@ content-sync ./my-html-file.html ./my-content
 # Process directory of HTML files
 content-sync ./my-html-directory ./my-content
 
-# Process with exclusions
-content-sync ./my-html-directory ./my-content --exclude node_modules --exclude dist
+  # Process with exclusions
+  content-sync ./my-html-directory ./my-content --exclude node_modules --exclude dist
+
+  # Sync edited markdown back to HTML
+  content-sync --sync-back ./my-content ./html-source
+  content-sync --sync-back ./my-content ./html-source --dry-run
 ```
 
 #### Direct Node Usage
@@ -180,6 +185,22 @@ const dirResult = await dirExtractor.processLocal();
 console.log(`Processed ${dirResult.totalFiles} files`);
 ```
 
+#### Reverse Sync
+
+```javascript
+const SyncBack = require('content-sync/src/sync-back');
+
+// Sync edited markdown back to HTML files
+const syncBack = new SyncBack({
+  markdownDir: './my-content',
+  htmlDir: './html-source',
+  dryRun: false
+});
+
+const result = await syncBack.syncBack();
+console.log(`Synced ${result.results.changes.length} changes`);
+```
+
 #### Custom Content Processing
 
 ```javascript
@@ -215,6 +236,7 @@ contentsync/
 │   ├── link-parser.js            # Link discovery and parsing
 │   ├── crawler.js                # Multi-page crawling
 │   ├── local-processor.js        # Local file processing
+│   ├── sync-back.js              # Reverse sync functionality
 │   └── utils.js                  # Utilities and markdown conversion
 ├── package.json                  # Project configuration
 ├── package-lock.json             # Dependency lock file
@@ -252,6 +274,34 @@ The extracted content includes:
 - **Blockquotes**: Quoted content
 - **Code blocks**: Pre-formatted code sections
 - **CSS Selectors**: Comments with precise selectors for each content piece
+
+## 🔄 Complete Workflow
+
+### 1. Content Extraction
+```bash
+# Extract content from HTML files
+content-sync ./my-html-files ./my-content
+```
+
+### 2. Content Editing
+- Edit the generated markdown files in `./my-content/`
+- Make small copy changes (not complete rewrites)
+- CSS selectors in comments help identify content sections
+
+### 3. Reverse Sync
+```bash
+# Preview changes (dry run)
+content-sync --sync-back ./my-content ./my-html-files --dry-run
+
+# Apply changes
+content-sync --sync-back ./my-content ./my-html-files
+```
+
+### 4. Safety Features
+- **Automatic backups** created before syncing
+- **Dry-run mode** to preview changes
+- **CSS selector matching** for precise content targeting
+- **Change reporting** shows exactly what was modified
 
 ## ⚙️ How It Works
 
@@ -471,6 +521,7 @@ The codebase is organized into modular components:
 - **`src/link-parser.js`**: Link discovery and URL parsing
 - **`src/crawler.js`**: Multi-page website crawling
 - **`src/local-processor.js`**: Local file and directory processing
+- **`src/sync-back.js`**: Reverse sync functionality
 - **`src/utils.js`**: Markdown conversion and utilities
 
 ### Adding New Features
@@ -529,6 +580,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Status**: ✅ Production Ready  
-**Method**: Smart Extraction (HTTP + Browser) + Multi-Page Crawling + Local File Processing  
-**Architecture**: Modular (9 files, ~1,500 lines total)  
+**Method**: Smart Extraction (HTTP + Browser) + Multi-Page Crawling + Local File Processing + Reverse Sync  
+**Architecture**: Modular (10 files, ~1,800 lines total)  
 **Dependencies**: 4 packages (cheerio, fs-extra, node-fetch, puppeteer)
