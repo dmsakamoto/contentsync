@@ -16,6 +16,7 @@ Extract text content from websites and convert it into editable Markdown files. 
 - **Simple CLI**: Easy-to-use command-line interface with flexible options
 - **Modular Architecture**: Clean, maintainable codebase organized in modules
 - **NPM Package**: Can be installed and used as a dependency in other projects
+- **Local File Processing**: Process HTML files and directories from your local filesystem
 
 ## 📋 Requirements
 
@@ -67,6 +68,19 @@ content-sync https://example.com ./my-content --depth 2 --filter admin --filter 
 
 # Limit maximum pages to extract
 content-sync https://example.com ./my-content --main --max-pages 10
+```
+
+#### Local File Processing
+
+```bash
+# Process single HTML file
+content-sync ./my-html-file.html ./my-content
+
+# Process directory of HTML files
+content-sync ./my-html-directory ./my-content
+
+# Process with exclusions
+content-sync ./my-html-directory ./my-content --exclude node_modules --exclude dist
 ```
 
 #### Direct Node Usage
@@ -141,6 +155,31 @@ const browserExtractor = new BrowserExtractor({
 const browserResult = await browserExtractor.extractFromUrl('https://example.com');
 ```
 
+#### Local File Processing
+
+```javascript
+const SmartExtractor = require('content-sync');
+
+// Process single HTML file
+const singleFileExtractor = new SmartExtractor({
+  inputPath: './my-html-file.html',
+  outputDir: './my-content'
+});
+
+const singleResult = await singleFileExtractor.processLocal();
+console.log(`Processed ${singleResult.content.length} pieces`);
+
+// Process directory of HTML files
+const dirExtractor = new SmartExtractor({
+  inputPath: './my-html-directory',
+  outputDir: './my-content',
+  excludePatterns: ['node_modules/**', 'dist/**']
+});
+
+const dirResult = await dirExtractor.processLocal();
+console.log(`Processed ${dirResult.totalFiles} files`);
+```
+
 #### Custom Content Processing
 
 ```javascript
@@ -175,6 +214,7 @@ contentsync/
 │   ├── content-parser.js         # HTML content parsing
 │   ├── link-parser.js            # Link discovery and parsing
 │   ├── crawler.js                # Multi-page crawling
+│   ├── local-processor.js        # Local file processing
 │   └── utils.js                  # Utilities and markdown conversion
 ├── package.json                  # Project configuration
 ├── package-lock.json             # Dependency lock file
@@ -430,6 +470,7 @@ The codebase is organized into modular components:
 - **`src/content-parser.js`**: HTML parsing and content extraction
 - **`src/link-parser.js`**: Link discovery and URL parsing
 - **`src/crawler.js`**: Multi-page website crawling
+- **`src/local-processor.js`**: Local file and directory processing
 - **`src/utils.js`**: Markdown conversion and utilities
 
 ### Adding New Features
@@ -488,6 +529,6 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 ---
 
 **Status**: ✅ Production Ready  
-**Method**: Smart Extraction (HTTP + Browser) + Multi-Page Crawling  
-**Architecture**: Modular (8 files, ~1,260 lines total)  
+**Method**: Smart Extraction (HTTP + Browser) + Multi-Page Crawling + Local File Processing  
+**Architecture**: Modular (9 files, ~1,500 lines total)  
 **Dependencies**: 4 packages (cheerio, fs-extra, node-fetch, puppeteer)

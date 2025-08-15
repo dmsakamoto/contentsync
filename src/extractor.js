@@ -1,6 +1,7 @@
 const HttpExtractor = require('./http-extractor');
 const BrowserExtractor = require('./browser-extractor');
 const WebsiteCrawler = require('./crawler');
+const LocalProcessor = require('./local-processor');
 
 /**
  * Smart Content Extractor
@@ -11,6 +12,7 @@ class SmartExtractor {
   constructor(config = {}) {
     this.config = {
       siteUrl: config.siteUrl || 'https://example.com',
+      inputPath: config.inputPath || null,
       outputDir: config.outputDir || './content',
       forceBrowser: config.forceBrowser || false,
       forceHttp: config.forceHttp || false,
@@ -25,12 +27,18 @@ class SmartExtractor {
     this.httpExtractor = new HttpExtractor(this.config);
     this.browserExtractor = new BrowserExtractor(this.config);
     this.crawler = new WebsiteCrawler(this.config);
+    this.localProcessor = new LocalProcessor(this.config);
   }
 
   /**
    * Main extraction method - automatically chooses best method
    */
   async extract() {
+    // Check if we're processing local files
+    if (this.config.inputPath) {
+      return await this.processLocal();
+    }
+
     console.log('🚀 Starting smart content extraction...');
     console.log(`📄 Extracting from: ${this.config.siteUrl}`);
 
@@ -89,6 +97,13 @@ class SmartExtractor {
    */
   async crawlWebsite(baseUrl, outputDir, options = {}) {
     return await this.crawler.crawlWebsite(baseUrl, outputDir, options);
+  }
+
+  /**
+   * Process local files and directories
+   */
+  async processLocal(inputPath = null, outputDir = null) {
+    return await this.localProcessor.processLocal(inputPath, outputDir);
   }
 
   /**

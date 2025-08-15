@@ -167,12 +167,16 @@ class ContentParser {
           }
           
           // Recursively process child elements to maintain order
-          this.extractContentInOrder($child, content, $);
+          if ($child.children && $child.children().length > 0) {
+            this.extractContentInOrder($child, content, $);
+          }
           break;
 
         default:
           // For other elements, recursively process children
-          this.extractContentInOrder($child, content, $);
+          if ($child.children && $child.children().length > 0) {
+            this.extractContentInOrder($child, content, $);
+          }
           break;
       }
     });

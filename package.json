@@ -26,7 +26,6 @@
     "node-fetch": "^2.7.0",
     "puppeteer": "^24.16.1"
   },
-  "devDependencies": {},
   "engines": {
     "node": ">=18.0.0"
   }
