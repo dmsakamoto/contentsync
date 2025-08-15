@@ -1,7 +1,7 @@
 {
   "name": "content-sync",
   "version": "1.0.0",
-  "description": "Smart content extraction utility that automatically chooses between HTTP and browser methods",
+  "description": "Smart content extraction and reverse sync utility for HTML to Markdown workflows",
   "main": "src/extractor.js",
   "bin": {
     "content-sync": "src/cli.js"
@@ -11,6 +11,10 @@
   },
   "keywords": [
     "content-sync",
+    "html-to-markdown",
+    "markdown-to-html",
+    "content-extraction",
+    "reverse-sync",
     "react",
     "nextjs",
     "markdown",

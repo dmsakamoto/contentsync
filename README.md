@@ -80,12 +80,12 @@ content-sync ./my-html-file.html ./my-content
 # Process directory of HTML files
 content-sync ./my-html-directory ./my-content
 
-  # Process with exclusions
-  content-sync ./my-html-directory ./my-content --exclude node_modules --exclude dist
+# Process with exclusions
+content-sync ./my-html-directory ./my-content --exclude node_modules --exclude dist
 
-  # Sync edited markdown back to HTML
-  content-sync --sync-back ./my-content ./html-source
-  content-sync --sync-back ./my-content ./html-source --dry-run
+# Sync edited markdown back to HTML
+content-sync --sync-back ./my-content ./html-source
+content-sync --sync-back ./my-content ./html-source --dry-run
 ```
 
 #### Direct Node Usage
@@ -542,6 +542,12 @@ content-sync https://example.com ./test-output --main
 
 # Test with filters
 content-sync https://example.com ./test-output --depth 2 --filter admin
+
+# Test local file processing
+content-sync ./my-html-file.html ./test-output
+
+# Test reverse sync (dry run)
+content-sync --sync-back ./test-output ./html-source --dry-run
 ```
 
 ## 🤝 Contributing
@@ -581,5 +587,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 
 **Status**: ✅ Production Ready  
 **Method**: Smart Extraction (HTTP + Browser) + Multi-Page Crawling + Local File Processing + Reverse Sync  
-**Architecture**: Modular (10 files, ~1,800 lines total)  
+**Architecture**: Modular (10 files, ~2,200 lines total)  
 **Dependencies**: 4 packages (cheerio, fs-extra, node-fetch, puppeteer)
